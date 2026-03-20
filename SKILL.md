@@ -64,12 +64,32 @@ fix = cumulative_offset_B - cumulative_offset_A
 
 Add `padding-top: fix` to whichever element's chain has the smaller cumulative offset. Prefer adding the padding to the row container, not the element itself.
 
+### Type hierarchy and horizontal rhythm
+
+Font size choices directly affect the baseline equation. When two elements share a font size, the `((row_height - font_size) / 2) + font_ascent` terms cancel and alignment is free. When they don't, you have to compensate with padding — and the math gets harder.
+
+This means **type hierarchy and horizontal rhythm are the same decision.** Elements that share a horizontal line should share a font size. Differentiate through weight, not size.
+
+```
+same font_size → baseline math cancels → free alignment
+different font_size → baseline math diverges → manual padding fix required
+```
+
+**The rule:** context-level text (page titles, toolbar titles, dates) matches the brand font size to preserve horizontal rhythm. It differentiates through weight, not size.
+
+```
+Brand:    14px / 600  →  baseline_y = X  (anchor — bold, owns the line)
+Context:  14px / 400  →  baseline_y = X  (quiet — same line, lighter weight)
+```
+
+The page title tells you *where you are*, not *what to look at*. It should be the quietest confident text in the header — not the loudest thing on the page. The data below becomes the hero by default because the title got out of the way.
+
 ### Rules
 
 1. Always run the procedure. Never eyeball alignment or guess padding values.
 2. Place the anchor first. Everything else follows.
 3. Use `items-center` on both rows. Never use `items-end` with manual bottom padding — it breaks when adjacent elements (like icon buttons) have fixed heights.
-4. Use the same row height and font size for both elements so the centering terms cancel and only the cumulative offset matters.
+4. Elements on the same horizontal line should share a font size. Differentiate through weight, not size.
 5. Icons centered in a button box align automatically when the button is centered in the same row as the text — no separate icon alignment needed.
 6. When the fix requires added padding, use a token value or a `var()` reference, not a magic number.
 
