@@ -4,167 +4,117 @@ description: Use when building any multi-container layout that needs alignment �
 ---
 # Rhythm
 
-Two formulaic alignment skills for any UI with multiple containers. No eyeballing — compute the position, then apply it.
+Rules for beautiful spacing and layout in multi-container UIs.
 
-## Horizontal Rhythm
+## Section 1 — Terminology
 
-When two elements sit on the same visual row but live in different containers, their baselines must align.
+Four named positions define where content sits inside any container. Every visible left edge must be on one of these.
 
-### The anchor
+**Container** — x=0. The region boundary itself. Nothing sits here except the background surface.
 
-The anchor is the element you design *first*. Give it perfect spacing, then its position becomes the truth that everything else aligns to.
+**Lane 1** — The interactive surface lane. Hover fills and active selection backgrounds have their left edge here. Most of the time it's invisible — it only reveals itself on interaction.
 
-1. **Place the anchor** — typically the sidebar logo or brand. Give it equal insets (top padding = left padding). The left inset places it on a vertical lane. The top inset sets the baseline. Same value, two jobs.
-2. **Draw the line** — the anchor's baseline becomes the horizontal line.
-3. **Align everything else** — every other element on the same visual row matches the anchor by sharing three properties: **top offset**, **row height**, and **line height**. When all three match, alignment is free — no manual fixes needed.
+**Lane 2** — The primary content edge. Where all visual content starts — icons, avatars, section labels. This is the line your eye scans. 99% of everything aligns here.
 
-### Procedure
+**Lane 3** — The derived lane. Its position is set by Lane 2 content width + gap. Align it when Lane 2 content is consistent. Accept variation when it's not — a 22px logo icon pushes its text to one position, a 14px nav icon pushes to another, and both are correct.
 
-**Step 1 — Identify elements that need horizontal rhythm.** Before writing any layout code, draw an imaginary horizontal line across the design. Any text, icon, or control that the line crosses and that lives in a different container than its neighbor is an alignment pair. Scan top to bottom — a layout can have multiple alignment lines, each with its own set of pairs. Every pair gets its own trace in steps 2–5.
+**Side navigation example:**
+- **Container:** sidebar background
+- **Lane 1:** nav-item hover/active fill left edge (invisible until interaction)
+- **Lane 2:** logo icon, nav icons, section labels, user avatar
+- **Lane 3:** "TokenTrack Admin", "Dashboard", "Bradley Ryan" (set by Lane 2 content + gap)
 
-**Step 2 — Trace each ancestor chain.** For each element, walk from the viewport down to the element. At every node, record its `margin-top` and `padding-top`:
+**Content area example:**
+- **Container:** content panel edge
+- **Lane 1 (Line 0):** `page_x` — toolbar titles, page headings, card borders
+- **Lane 2 (Line 1):** `page_x + card_padding` — text inside cards, alerts, tables
 
-```
-Element A path:
-  viewport
-   └─ node_1  (margin-top: ?, padding-top: ?)
-       └─ node_2  (margin-top: ?, padding-top: ?)
-           └─ row_A  (height: ?, items-center)
-               └─ element_A  (font-size: ?)
+## Section 2 — Spatial Harmony
 
-Element B path:
-  viewport
-   └─ node_1  (margin-top: ?, padding-top: ?)
-       └─ node_2  (margin-top: ?, padding-top: ?)
-           └─ row_B  (height: ?, items-center)
-               └─ element_B  (font-size: ?)
-```
+The x padding and y padding on an element should often be the same value. If the left padding is 16px, the top padding is often 16px as well.
 
-**Step 3 — Compute baseline_y for each.** Sum every ancestor's top margin and padding, then add the centering offset:
+This matters most at the anchor — the element you design first, typically the sidebar logo or brand. When its x and y insets match, the vertical lane position and horizontal baseline are set by one number. Everything downstream inherits that harmony.
 
-```
-cumulative_offset = Σ(margin_top + padding_top) for each ancestor
-baseline_y = cumulative_offset + ((row_height - font_size) / 2) + font_ascent
-```
+**Example:** A sidebar logo with `padding: 16px` places its icon on Lane 2 at x=16 and sets the first horizontal baseline at y=16 + centering offset. The content toolbar next door uses the same 16px top padding — baselines align for free.
 
-`font_ascent` ≈ 0.8 × font_size for sans-serif fonts like Inter.
+## Section 3 — Neighboring Alignment
 
-**Step 4 — Compare.**
+Once an element has good spatial harmony on its own, check its neighbors. Elements in adjacent containers that sit on the same line should align.
+
+### Horizontal
+
+Elements in adjacent containers that sit on the same horizontal line should share a baseline. Alignment comes for free when both sides share the same top offset, row height, and line height. When it doesn't, one side has an ancestor the other doesn't.
+
+The baseline y-position of any element is the sum of every ancestor's top contribution:
 
 ```
-baseline_y_A = baseline_y_B  →  aligned, no fix needed
-baseline_y_A ≠ baseline_y_B  →  go to step 5
+baseline_y = Σ(margin_top + padding_top) for each ancestor + ((row_height - font_size) / 2) + font_ascent
 ```
 
-**Step 5 — Fix.** When both elements use the same row height and font size, the centering and ascent terms cancel. The fix reduces to:
+`font_ascent` ≈ 0.8 × font_size for sans-serif fonts.
+
+To find a mismatch, trace both paths from viewport to element:
 
 ```
-fix = cumulative_offset_B - cumulative_offset_A
+Element A: viewport → node(m:?, p:?) → node(m:?, p:?) → row(h:?) → text(fs:?)
+Element B: viewport → node(m:?, p:?) → node(m:?, p:?) → node(m:?, p:?) → row(h:?) → text(fs:?)
 ```
 
-Add `padding-top: fix` to whichever element's chain has the smaller cumulative offset. Prefer adding the padding to the row container, not the element itself.
+The extra node in one chain is where the offset diverges. Compensate by adding padding to the shorter chain, or removing the extra offset from the longer one.
 
-### Type hierarchy and horizontal rhythm
-
-Font size choices directly affect the baseline equation. When two elements share a font size, the `((row_height - font_size) / 2) + font_ascent` terms cancel and alignment is free. When they don't, you have to compensate with padding — and the math gets harder.
-
-This means **type hierarchy and horizontal rhythm are the same decision.** Elements that share a horizontal line should share a font size. Differentiate through weight, not size.
+**Example:** A sidebar nav has `py: 8px` (shell padding) before the header row. The content area has `margin-top: 8px` (inset). Both use a 40px row and 14px font:
 
 ```
-same top offset + row height + line height → free alignment
-any one differs → baseline diverges → manual fix required
+Sidebar:  0 + 8 + ((40-14)/2) + 11.2 = 32.2px
+Content:  0 + 8 + ((40-14)/2) + 11.2 = 32.2px  ✓  match
 ```
 
-**The rule:** context-level text (page titles, toolbar titles, dates) matches the brand font size to preserve horizontal rhythm. It differentiates through weight, not size.
+**Type hierarchy note:** elements on the same horizontal line should share a font size — differentiate through weight, not size. Context text (page titles, dates) uses the same font size as the brand but lighter weight. The page title tells you *where you are*, not *what to look at*.
 
 ```
-Brand:    14px / 600  →  baseline_y = X  (anchor — bold, owns the line)
-Context:  14px / 400  →  baseline_y = X  (quiet — same line, lighter weight)
+Brand:    14px / 600  (anchor — bold, owns the line)
+Context:  14px / 400  (quiet — same baseline, lighter weight)
 ```
 
-The page title tells you *where you are*, not *what to look at*. It should be the quietest confident text in the header — not the loudest thing on the page. The data below becomes the hero by default because the title got out of the way.
+### Vertical
+
+Elements in adjacent containers that sit on the same vertical line should share a left edge.
+
+Every element's x-position is the sum of every ancestor's left contribution:
+
+```
+x = Σ(margin_left + padding_left) for each ancestor from container edge to element
+```
+
+In the content area, define two constants that produce named lanes:
+
+```
+page_x       = ?   (shell inset — padding on the scroll area)
+card_padding = ?   (inner padding on every surface)
+
+Line 0 = page_x                     (toolbar titles, page headings, card borders)
+Line 1 = page_x + card_padding      (text inside cards, alerts, tables)
+```
+
+Every element's `x` must equal one of these lines. If it doesn't, an ancestor has inconsistent padding.
+
+**Example:** `page_x = 16`, `card_padding = 12`:
+
+```
+Toolbar "Usage":           scroll(pl:16) → text                → x = 16 = Line 0 ✓
+Page heading:              scroll(pl:16) → text                → x = 16 = Line 0 ✓
+Card label "Total tokens": scroll(pl:16) → card(pl:12) → text → x = 28 = Line 1 ✓
+Table cell:                scroll(pl:16) → table(px:12) → text → x = 28 = Line 1 ✓
+Alert with px-5:           scroll(pl:16) → alert(px:20) → text → x = 36 ✗ broken
+```
+
+The alert used `px-5` (20px) instead of `px-3` (12px). One inconsistent padding value creates a third line. Fix: use `card_padding` everywhere.
 
 ### Rules
 
-1. Place the anchor first. Everything else follows.
-2. Prefer free alignment (shared offset, row height, line height) over manual fixes. The trace procedure is a debugging tool, not the design method.
-3. Use `items-center` on both rows. Never use `items-end` with manual bottom padding — it breaks when adjacent elements (like icon buttons) have fixed heights.
-4. Elements on the same horizontal line should share a font size. Differentiate through weight, not size.
-5. Row height is the taller of the line-height or tallest child (e.g. an icon). Two rows with the same font size but different icon heights will misalign.
-6. Icons centered in a button box align automatically when the button is centered in the same row as the text.
-7. When a manual fix is needed, use a token value or `var()` reference, not a magic number.
-
----
-
-## Vertical Rhythm
-
-Every visible left edge in the UI should sit on a named lane. Fewer lanes = calmer. Every element's left edge must be on a lane, and you must be able to name which lane and why.
-
-### The equation
-
-Every text element in the content area has a left-edge x-position:
-
-```
-x = Σ(margin_left + padding_left) for each ancestor from content edge to element
-```
-
-Two depth levels exist. Each has a formula:
-
-```
-level_0 = page_x
-level_1 = page_x + card_padding
-```
-
-Two elements are vertically aligned when their `x` values are equal.
-
-### Procedure
-
-**Step 1 — Define the two constants.**
-
-```
-page_x       = ?   (shell inset — padding on the content scroll area)
-card_padding = ?   (inner padding on every surface: cards, alerts, tables)
-```
-
-These two values produce exactly two vertical lines:
-
-```
-line_0 = page_x                      (shell level)
-line_1 = page_x + card_padding       (content level)
-```
-
-Example: `page_x = 16`, `card_padding = 12` → line_0 = 16, line_1 = 28.
-
-**Step 2 — Classify every element.** Walk the content area top to bottom. For each text element, determine its level:
-
-- **Level 0 (shell):** toolbar titles, page headings, page descriptions, card borders. These have no surface wrapper — they sit directly inside the scroll container at `page_x`.
-- **Level 1 (content):** text inside a card, alert, or table. These are nested one level deeper — `page_x` from the scroll container, then `card_padding` from the surface edge.
-
-**Step 3 — Compute x for each element.** Trace the ancestor chain left-to-right, summing `margin_left + padding_left` at each node:
-
-```
-Element inside a card:
-  scroll container (pl: page_x) → card (pl: card_padding) → text
-  x = page_x + card_padding = line_1  ✓
-
-Element without a card:
-  scroll container (pl: page_x) → text
-  x = page_x = line_0  ✓
-```
-
-**Step 4 — Verify.** Every element's `x` must equal either `line_0` or `line_1`. If an element produces a third value, its padding is wrong — find the ancestor with the inconsistent padding and fix it.
-
-```
-x = line_0  →  correct (shell level)
-x = line_1  →  correct (content level)
-x ≠ line_0 AND x ≠ line_1  →  broken — fix the padding
-```
-
-### Rules
-
-1. Every left edge must be on a named lane. If an element sits between lanes, it's a bug. If you need another lane, name it and own it.
-2. `card_padding` is one value used everywhere — every card, alert, table header, and table cell uses the same inner padding.
-3. Interactive surfaces (hover fills, active backgrounds) have visible left edges — they're on a lane, not invisible implementation details.
-4. The toolbar is a shell element at level 0. Do not push it to level 1.
-5. Page headings and descriptions are shell elements at level 0 — no surface wrapper means no extra inset.
-6. Card borders align to level 0. Card content aligns to level 1.
+1. Prefer free alignment — share top offset, row height, and line height so baselines match automatically. The trace procedure is for debugging, not designing.
+2. Every visible left edge must be on a named lane. If an element sits between lanes, it's a bug.
+3. Interactive surfaces (hover fills, active backgrounds) have visible left edges — they're on a lane.
+4. `card_padding` is one value used everywhere — every card, alert, table header, and table cell.
+5. Elements on the same horizontal line share a font size. Differentiate through weight, not size.
+6. Row height is the taller of line-height or tallest child (e.g. an icon). Two rows with the same font size but different icon heights will misalign.
