@@ -14,9 +14,9 @@ When two elements sit on the same visual row but live in different containers, t
 
 The anchor is the element you design *first*. Give it perfect spacing, then its position becomes the truth that everything else aligns to.
 
-1. **Place the anchor** — typically the sidebar logo or brand. Give it equal insets (top padding = left padding). Get it in a beautiful spot.
+1. **Place the anchor** — typically the sidebar logo or brand. Give it equal insets (top padding = left padding). The left inset places it on a vertical lane. The top inset sets the baseline. Same value, two jobs.
 2. **Draw the line** — the anchor's baseline becomes the horizontal line.
-3. **Align everything else** — every other element on the same visual row adjusts to match the anchor's baseline.
+3. **Align everything else** — every other element on the same visual row matches the anchor by sharing three properties: **top offset**, **row height**, and **line height**. When all three match, alignment is free — no manual fixes needed.
 
 ### Procedure
 
@@ -71,8 +71,8 @@ Font size choices directly affect the baseline equation. When two elements share
 This means **type hierarchy and horizontal rhythm are the same decision.** Elements that share a horizontal line should share a font size. Differentiate through weight, not size.
 
 ```
-same font_size → baseline math cancels → free alignment
-different font_size → baseline math diverges → manual padding fix required
+same top offset + row height + line height → free alignment
+any one differs → baseline diverges → manual fix required
 ```
 
 **The rule:** context-level text (page titles, toolbar titles, dates) matches the brand font size to preserve horizontal rhythm. It differentiates through weight, not size.
@@ -86,18 +86,19 @@ The page title tells you *where you are*, not *what to look at*. It should be th
 
 ### Rules
 
-1. Always run the procedure. Never eyeball alignment or guess padding values.
-2. Place the anchor first. Everything else follows.
+1. Place the anchor first. Everything else follows.
+2. Prefer free alignment (shared offset, row height, line height) over manual fixes. The trace procedure is a debugging tool, not the design method.
 3. Use `items-center` on both rows. Never use `items-end` with manual bottom padding — it breaks when adjacent elements (like icon buttons) have fixed heights.
 4. Elements on the same horizontal line should share a font size. Differentiate through weight, not size.
-5. Icons centered in a button box align automatically when the button is centered in the same row as the text — no separate icon alignment needed.
-6. When the fix requires added padding, use a token value or a `var()` reference, not a magic number.
+5. Row height is the taller of the line-height or tallest child (e.g. an icon). Two rows with the same font size but different icon heights will misalign.
+6. Icons centered in a button box align automatically when the button is centered in the same row as the text.
+7. When a manual fix is needed, use a token value or `var()` reference, not a magic number.
 
 ---
 
 ## Vertical Rhythm
 
-Every piece of content sits on one of two depth levels. Each level has a consistent left-edge offset from the content area's left boundary. **All text at the same level must share the same x-coordinate.**
+Every visible left edge in the UI should sit on a named lane. Fewer lanes = calmer. Every element's left edge must be on a lane, and you must be able to name which lane and why.
 
 ### The equation
 
@@ -161,8 +162,9 @@ x ≠ line_0 AND x ≠ line_1  →  broken — fix the padding
 
 ### Rules
 
-1. Exactly two vertical lines. A third line means inconsistent padding somewhere.
+1. Every left edge must be on a named lane. If an element sits between lanes, it's a bug. If you need another lane, name it and own it.
 2. `card_padding` is one value used everywhere — every card, alert, table header, and table cell uses the same inner padding.
-3. The toolbar is a shell element at level 0. Do not push it to level 1.
-4. Page headings and descriptions are shell elements at level 0 — no surface wrapper means no extra inset.
-5. Card borders align to level 0. Card content aligns to level 1.
+3. Interactive surfaces (hover fills, active backgrounds) have visible left edges — they're on a lane, not invisible implementation details.
+4. The toolbar is a shell element at level 0. Do not push it to level 1.
+5. Page headings and descriptions are shell elements at level 0 — no surface wrapper means no extra inset.
+6. Card borders align to level 0. Card content aligns to level 1.
